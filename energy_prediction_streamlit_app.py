@@ -4,42 +4,63 @@ import numpy as np
 import joblib
 import os
 import traceback # Hata izlerini görmek için eklendi
+import requests # Dosyaları indirmek için
 
 st.set_page_config(layout="wide")
 
 # --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
-    # Tüm joblib dosyaları yerelden yüklenecek
-    required_joblibs = [
-        'stacking_regressor_model.joblib',
+    # *** SADECE ANA MODEL İÇİN GOOGLE DRIVE URL'Sİ BURAYA YAPIŞTIRILDI ***
+    # Lütfen bu URL'nin Google Drive'dan doğrudan indirme formatında olduğundan emin olun.
+    # Bu format daha güvenlidir: "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
+    MODEL_URL = "https://drive.google.com/uc?export=download&id=1_GfyOWdbn83vBz1ONldcZNzR_yl-B9HT" 
+
+    # Yerel (uygulamanın çalıştığı dizinde) bulunan joblib dosyaları ve görseller
+    required_local_joblibs = [
         'scaler.joblib',
         'original_X_columns.joblib',
-        'all_descriptions.joblib',
+        'all_descriptions.joblib', # all_descriptions.joblib artık yerelden çekilecek
         'numerical_features.joblib'
     ]
-    required_images = [
+    required_local_images = [
         'sicaklik_nem_dagilimi.png',
         'sicaklik_nem_dagilimi_scatter.png',
-        'santral.jpg'
+        'santral.png'
     ]
 
     try:
         downloaded_objects = {}
-        with st.spinner("Model ve yardımcı dosyalar yerelden yükleniyor..."):
-            for filename in required_joblibs:
+        
+        # Ana modeli Google Drive'dan indir
+        st.info("Ana model Google Drive'dan indiriliyor...")
+        response = requests.get(MODEL_URL, stream=True)
+        response.raise_for_status() # HTTP hatalarını kontrol et (örn: 404, 403)
+        
+        model_local_path = 'stacking_regressor_model.joblib'
+        with open(model_local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        st.success("Ana model başarıyla indirildi!")
+        
+        # İndirilen ana modeli yükle
+        st.info("Ana model yükleniyor (joblib.load)...")
+        lr_model = joblib.load(model_local_path)
+        st.success("Ana model başarıyla yüklendi!")
+
+        # Diğer .joblib dosyalarını yerel olarak yükle
+        with st.spinner("Yardımcı dosyalar yerelden yükleniyor..."):
+            for filename in required_local_joblibs:
                 if not os.path.exists(filename):
                     raise FileNotFoundError(f"Dosya bulunamadı: {filename}. Lütfen projenizin ana dizininde olduğundan emin olun.")
                 
-                st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
                 downloaded_objects[filename] = joblib.load(filename)
-                st.success(f"'{filename}' başarıyla yüklendi!")
+                st.info(f"'{filename}' başarıyla yüklendi.") # Bilgi mesajı eklendi
 
-        # Yüklenen objeleri değişkenlere ata
-        lr_model = downloaded_objects['stacking_regressor_model.joblib']
+        # Yüklenen objeleri değişkenlere ata (yerelden gelenler)
         scaler = downloaded_objects['scaler.joblib']
         original_X_columns = downloaded_objects['original_X_columns.joblib']
-        all_descriptions = downloaded_objects['all_descriptions.joblib']
+        all_descriptions = downloaded_objects['all_descriptions.joblib'] # all_descriptions yerelden atanıyor
         numerical_features = downloaded_objects['numerical_features.joblib']
 
         # Görsel dosyalarının varlığını kontrol et (sadece bilgilendirme)
@@ -55,6 +76,18 @@ def load_resources():
             **Detay:** {e}
             Lütfen projenizin tüm model, yardımcı ve görsel dosyalarının Streamlit uygulamanızla **aynı dizinde** olduğundan emin olun.
             Bu dosyaları oluşturmak için lütfen **Canvas belgesini (energy_prediction_model) çalıştırın**.
+            
+            **Traceback:**
+            ```
+            {traceback.format_exc()}
+            ```
+        """)
+        st.stop()
+    except requests.exceptions.RequestException as e:
+        st.error(f"""
+            **HATA: Ana model Google Drive'dan indirilirken bir ağ veya HTTP hatası oluştu!**
+            **Detay:** {e}
+            Lütfen Google Drive URL'nizin doğru olduğundan ve dosyanıza herkese açık erişimin verildiğinden emin olun.
             
             **Traceback:**
             ```
