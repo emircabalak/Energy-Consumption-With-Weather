@@ -2,51 +2,133 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import os
+import requests # Model dosyasını URL'den indirmek için eklendi
+import os # Dosya yolları ve varlığını kontrol etmek için eklendi
 import traceback # Hata izlerini görmek için eklendi
+import re # 'confirm' parametresini ayıklamak için eklendi
 
 st.set_page_config(layout="wide")
 
-# --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
+st.title('Enerji Tüketimi Tahmin Uygulaması')
+st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini tahmin edin.')
+
+# --- Model Yükleme Kısmı Güncellemesi ---
+# Ana model dosyasının URL'si (burayı kendi modelinizin barındığı URL ile değiştirin)
+# ÖNEMLİ: Google Drive kullanıyorsanız, dosyayı "herkese açık" (public) olarak ayarlamalısınız.
+# LÜTFEN AŞAĞIDAKİ MODEL_URL'Yİ KENDİ GOOGLE DRIVE DOSYA KİMLİĞİNİZİ KULLANARAK GÜNCELLEYİN!
+# Örnek: Eğer dosya paylaşım URL'niz 'https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0jklmno/view?usp=sharing' ise,
+# 'SİZİN_GOOGLE_DRIVE_DOSYA_KİMLİĞİNİZ' yerine '1a2b3c4d5e6f7g8h9i0jklmno' yazmalısınız.
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
+
+MODEL_PATH = "stacking_regressor_model.joblib"
+SCALER_PATH = "scaler.joblib"
+ORIGINAL_X_COLUMNS_PATH = "original_X_columns.joblib"
+ALL_DESCRIPTIONS_PATH = "all_descriptions.joblib"
+NUMERICAL_FEATURES_PATH = "numerical_features.joblib"
+
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
-    # Tüm joblib dosyaları yerelden yüklenecek
-    required_joblibs = [
-        'stacking_regressor_model.joblib',
-        'scaler.joblib',
-        'original_X_columns.joblib',
-        'all_descriptions.joblib',
-        'numerical_features.joblib'
-    ]
-    required_images = [
-        'sicaklik_nem_dagilimi.png',
-        'sicaklik_nem_dagilimi_scatter.png',
-        'santral.jpg'
-    ]
+    # Büyük model dosyası (stacking_regressor_model.joblib) için URL'den indirme
+    if not os.path.exists(MODEL_PATH):
+        st.info("Büyük model dosyası indiriliyor, lütfen bekleyiniz...")
+        try:
+            # requests.Session kullanarak çerezleri ve oturum durumunu koru
+            session = requests.Session()
+            
+            # İlk indirme denemesi (genellikle onay sayfasına veya doğrudan indirmeye yönlendirir)
+            response = session.get(MODEL_URL, stream=True)
+            response.raise_for_status() # HTTP hatalarını kontrol et (örn. 404 Not Found)
 
-    try:
-        downloaded_objects = {}
-        with st.spinner("Model ve yardımcı dosyalar yerelden yükleniyor..."):
-            for filename in required_joblibs:
-                if not os.path.exists(filename):
-                    raise FileNotFoundError(f"Dosya bulunamadı: {filename}. Lütfen projenizin ana dizininde olduğundan emin olun.")
+            # Google Drive'ın büyük dosyalar için onay sayfasını kontrol et
+            # Genellikle bu sayfa HTML döner ve 'confirm' parametresi içerir.
+            # Ayrıca yanıt başlıklarında 'Content-Disposition' olup olmadığını kontrol ederek doğrudan bir dosya mı yoksa HTML mi geldiğini anlarız.
+            if 'Content-Type' in response.headers and 'text/html' in response.headers['Content-Type'] and 'Content-Disposition' not in response.headers:
+                st.warning("Google Drive büyük dosya uyarısı algılandı. Onay sonrası tekrar indirme deneniyor...")
                 
-                st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
+                # Onay sayfasından 'confirm' parametresini ayıkla
+                # Bu regex deseni, Google Drive'ın onay sayfasındaki 'confirm' değerini bulmak için kullanılır.
+                # Örnek: <form id="_form" action="..." method="post"><input type="hidden" name="confirm" value="XXXXXX">...</form>
+                match = re.search(r'name="confirm" value="([A-Za-z0-9_]+)"', response.text)
+                if match:
+                    confirm_value = match.group(1)
+                    # Yeni indirme URL'sini 'confirm' parametresiyle oluştur.
+                    # Bazen bu adım için POST isteği gerekir.
+                    confirmed_url = MODEL_URL + "&confirm=" + confirm_value
+                    
+                    # POST isteği ile onay ver ve gerçek indirmeyi başlat
+                    response = session.post(confirmed_url, stream=True)
+                    response.raise_for_status() # İkinci denemede de HTTP hatalarını kontrol et
+                    st.info("Onay sonrası indirme isteği gönderildi.")
+                else:
+                    st.warning("Google Drive onay sayfası algılandı ancak 'confirm' parametresi bulunamadı. Dosya yine de indirilmeye çalışılıyor.")
+            
+            # Dosyayı kaydet
+            with open(MODEL_PATH, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            st.success("Büyük model dosyası başarıyla indirildi.")
+            # İndirilen dosyanın boyutunu kontrol et (hata ayıklama için)
+            file_size_bytes = os.path.getsize(MODEL_PATH)
+            st.info(f"İndirilen dosya boyutu: {file_size_bytes / (1024*1024):.2f} MB")
+
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"""
+                **HATA: Model dosyasını indirirken bir sorun oluştu!**
+                **Detay:** {e}
+                Lütfen '{MODEL_PATH}' dosyasının barındığı URL'nin doğru, erişilebilir ve herkese açık olduğundan emin olun.
+                Eğer Google Drive kullanıyorsanız, bağlantıyı 'Herkese Açık' olarak ayarlamayı unutmayın ve URL formatının doğru olduğundan emin olun.
+                
+                **Traceback:**
+                ```
+                {traceback.format_exc()}
+                ```
+            """)
+            st.stop()
+    
+    # Diğer joblib dosyaları (scaler, original_X_columns, all_descriptions, numerical_features)
+    # repo içinde kabul edilir ve doğrudan joblib.load ile yüklenir.
+    required_joblibs_local = [
+        MODEL_PATH, # Artık yerel olarak var veya indirildi
+        SCALER_PATH,
+        ORIGINAL_X_COLUMNS_PATH,
+        ALL_DESCRIPTIONS_PATH,
+        NUMERICAL_FEATURES_PATH
+    ]
+    
+    downloaded_objects = {}
+    try:
+        with st.spinner("Yardımcı dosyalar yerelden yükleniyor..."):
+            for filename in required_joblibs_local:
+                if not os.path.exists(filename):
+                    raise FileNotFoundError(f"'{filename}' dosyası bulunamadı. Lütfen projenizin ana dizininde olduğundan emin olun.")
+                
+                # Model dosyası zaten yukarıda işlendi veya indirildi, tekrar info basmaya gerek yok
+                if filename != MODEL_PATH:
+                    st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
+                
                 downloaded_objects[filename] = joblib.load(filename)
-                st.success(f"'{filename}' başarıyla yüklendi!")
+                
+                if filename != MODEL_PATH:
+                    st.success(f"'{filename}' başarıyla yüklendi!")
 
         # Yüklenen objeleri değişkenlere ata
-        lr_model = downloaded_objects['stacking_regressor_model.joblib']
-        scaler = downloaded_objects['scaler.joblib']
-        original_X_columns = downloaded_objects['original_X_columns.joblib']
-        all_descriptions = downloaded_objects['all_descriptions.joblib']
-        numerical_features = downloaded_objects['numerical_features.joblib']
+        lr_model = downloaded_objects[MODEL_PATH]
+        scaler = downloaded_objects[SCALER_PATH]
+        original_X_columns = downloaded_objects[ORIGINAL_X_COLUMNS_PATH]
+        all_descriptions = downloaded_objects[ALL_DESCRIPTIONS_PATH]
+        numerical_features = downloaded_objects[NUMERICAL_FEATURES_PATH]
 
         # Görsel dosyalarının varlığını kontrol et (sadece bilgilendirme)
+        required_images = [
+            'sicaklik_nem_dagilimi.png',
+            'sicaklik_nem_dagilimi_scatter.png',
+            'santral.png'
+        ]
         for img in required_images:
             if not os.path.exists(img):
                 st.warning(f"Görsel '{img}' bulunamadı. Lütfen model eğitim dosyasını (energy_prediction_model.py) çalıştırdığınızdan ve görsellerin aynı dizine kaydedildiğinden emin olun.")
-            
+                
         return lr_model, scaler, original_X_columns, all_descriptions, numerical_features
     
     except FileNotFoundError as e:
@@ -54,7 +136,7 @@ def load_resources():
             **HATA: Gerekli dosyalardan biri bulunamadı!**
             **Detay:** {e}
             Lütfen projenizin tüm model, yardımcı ve görsel dosyalarının Streamlit uygulamanızla **aynı dizinde** olduğundan emin olun.
-            Bu dosyaları oluşturmak için lütfen **Canvas belgesini (energy_prediction_model) çalıştırın**.
+            Bu dosyaları oluşturmak için lütfen **model eğitim betiğinizi çalıştırın**.
             
             **Traceback:**
             ```
@@ -191,7 +273,7 @@ with col3:
 if st.button('Aktif Güç Tahmin Et'):
     # Kullanıcı girdilerini bir DataFrame'e dönüştür
     input_data = pd.DataFrame([[current, voltage, temp, pressure, humidity, speed, deg, description]],
-                                  columns=['current', 'voltage', 'temp', 'pressure', 'humidity', 'speed', 'deg', 'description'])
+                               columns=['current', 'voltage', 'temp', 'pressure', 'humidity', 'speed', 'deg', 'description'])
 
     # Girdiye one-hot encoding uygula
     input_encoded = pd.get_dummies(input_data, columns=['description'], dtype='int')
