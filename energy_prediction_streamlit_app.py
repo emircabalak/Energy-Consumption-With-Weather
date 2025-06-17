@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
-import requests # Dosyaları indirmek için
 import traceback # Hata izlerini görmek için eklendi
 
 st.set_page_config(layout="wide")
@@ -11,52 +10,40 @@ st.set_page_config(layout="wide")
 # --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
-    # *** ANA MODELİN GOOGLE DRIVE URL'Sİ BURAYA YAPIŞTIRILDI ***
-    # Lütfen bu URL'nin Google Drive'dan doğrudan indirme formatında olduğundan emin olun:
-    # "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
-    # Sizin verdiğiniz linkteki dosya kimliği (ID): 1MXmLHu3TS04B7psZ72zBA7Tv3zeUYFK_
-    MODEL_URL = "https://drive.google.com/file/d/1_GfyOWdbn83vBz1ONldcZNzR_yl-B9HT/view?usp=sharing"
-
-    # Diğer .joblib dosyaları ve görsellerin yerel (GitHub reposunda) olduğu varsayılıyor.
-    required_local_joblibs = [
+    # Tüm joblib dosyaları yerelden yüklenecek
+    required_joblibs = [
+        'stacking_regressor_model.joblib',
         'scaler.joblib',
         'original_X_columns.joblib',
         'all_descriptions.joblib',
         'numerical_features.joblib'
     ]
-    required_local_images = [
+    required_images = [
         'sicaklik_nem_dagilimi.png',
         'sicaklik_nem_dagilimi_scatter.png',
-        'santral.png'
+        'santral.jpg'
     ]
 
     try:
-        # Ana modeli Google Drive'dan indir
-        st.info("Ana model Google Drive'dan indiriliyor...")
-        response = requests.get(MODEL_URL, stream=True)
-        response.raise_for_status() # HTTP hatalarını kontrol et (örn: 404, 403)
-        
-        model_local_path = 'stacking_regressor_model.joblib'
-        with open(model_local_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        st.success("Ana model başarıyla indirildi!")
-        
-        # İndirilen modeli yükle
-        st.info("Ana model yükleniyor (joblib.load)...")
-        lr_model = joblib.load(model_local_path)
-        st.success("Ana model başarıyla yüklendi!")
+        downloaded_objects = {}
+        with st.spinner("Model ve yardımcı dosyalar yerelden yükleniyor..."):
+            for filename in required_joblibs:
+                if not os.path.exists(filename):
+                    raise FileNotFoundError(f"Dosya bulunamadı: {filename}. Lütfen projenizin ana dizininde olduğundan emin olun.")
+                
+                st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
+                downloaded_objects[filename] = joblib.load(filename)
+                st.success(f"'{filename}' başarıyla yüklendi!")
 
-        # Diğer .joblib dosyalarını yerel olarak yükle
-        with st.spinner("Yardımcı dosyalar yerel olarak yükleniyor..."):
-            scaler = joblib.load('scaler.joblib')
-            original_X_columns = joblib.load('original_X_columns.joblib')
-            all_descriptions = joblib.load('all_descriptions.joblib')
-            numerical_features = joblib.load('numerical_features.joblib')
-        st.success("Tüm yardımcı dosyalar başarıyla yüklendi!")
+        # Yüklenen objeleri değişkenlere ata
+        lr_model = downloaded_objects['stacking_regressor_model.joblib']
+        scaler = downloaded_objects['scaler.joblib']
+        original_X_columns = downloaded_objects['original_X_columns.joblib']
+        all_descriptions = downloaded_objects['all_descriptions.joblib']
+        numerical_features = downloaded_objects['numerical_features.joblib']
 
         # Görsel dosyalarının varlığını kontrol et (sadece bilgilendirme)
-        for img in required_local_images:
+        for img in required_images:
             if not os.path.exists(img):
                 st.warning(f"Görsel '{img}' bulunamadı. Lütfen model eğitim dosyasını (energy_prediction_model.py) çalıştırdığınızdan ve görsellerin aynı dizine kaydedildiğinden emin olun.")
             
@@ -64,19 +51,10 @@ def load_resources():
     
     except FileNotFoundError as e:
         st.error(f"""
-            **HATA: Gerekli yerel dosyalardan biri bulunamadı!**
+            **HATA: Gerekli dosyalardan biri bulunamadı!**
             **Detay:** {e}
-            Lütfen aşağıdaki dosyaların Streamlit uygulamanızla aynı dizinde (ve GitHub deponuzda) olduğundan emin olun:
-            - `scaler.joblib`
-            - `original_X_columns.joblib`
-            - `all_descriptions.joblib`
-            - `numerical_features.joblib`
-            - `sicaklik_nem_dagilimi.png`
-            - `sicaklik_nem_dagilimi_scatter.png`
-            - `santral.png`
-            
+            Lütfen projenizin tüm model, yardımcı ve görsel dosyalarının Streamlit uygulamanızla **aynı dizinde** olduğundan emin olun.
             Bu dosyaları oluşturmak için lütfen **Canvas belgesini (energy_prediction_model) çalıştırın**.
-            Ardından bu Streamlit uygulamasını tekrar başlatın.
             
             **Traceback:**
             ```
@@ -84,36 +62,13 @@ def load_resources():
             ```
         """)
         st.stop()
-    except requests.exceptions.RequestException as e:
+    except Exception as e: # joblib yükleme sırasındaki PicklingError veya diğer bilinmeyen hataları yakalamak için
         st.error(f"""
-            **HATA: Ana model Google Drive'dan indirilirken bir ağ veya HTTP hatası oluştu!**
+            **HATA: Model/Yardımcı dosyalardan biri yüklenirken beklenmeyen bir sorun oluştu!**
+            Bu genellikle, modelin kaydedildiği ortam ile yüklendiği ortam arasındaki kütüphane sürümü uyumsuzluklarından kaynaklanır.
             **Detay:** {e}
-            Lütfen Google Drive URL'nizin doğru olduğundan, dosyanıza herkese açık erişimin verildiğinden ve ağ bağlantınızın stabil olduğundan emin olun.
             
-            **Traceback:**
-            ```
-            {traceback.format_exc()}
-            ```
-        """)
-        st.stop()
-    except joblib.externals.loky.reusable_executor.PicklingError as e:
-        st.error(f"""
-            **HATA: Joblib modeli yüklenirken bir PicklingError oluştu!**
-            Bu, model dosyasının bozuk olduğu veya yükleme ortamında uyumsuzluk olduğu anlamına gelebilir.
-            **Detay:** {e}
-            Lütfen model eğitim dosyasını tekrar çalıştırıp modeli yeniden kaydetmeyi deneyin.
-            
-            **Traceback:**
-            ```
-            {traceback.format_exc()}
-            ```
-        """)
-        st.stop()
-    except Exception as e: # Diğer tüm beklenmeyen hatalar
-        st.error(f"""
-            **HATA: Beklenmeyen bir sorun oluştu!**
-            **Detay:** {e}
-            Lütfen logları ve Stack Overflow gibi kaynakları inceleyerek bu hatanın kaynağını araştırmayı deneyin.
+            **Çözüm Önerisi:** Lütfen yerel ortamınızdaki tüm kütüphanelerin (özellikle `joblib`, `scikit-learn`, `numpy`, `pandas`, `loky`) modelin kaydedildiği sürümle tam olarak eşleştiğinden emin olun. Gerekirse Conda ortamınızı silip `requirements.txt` ile yeniden kurun ve modelleri yeniden kaydedin (`protocol=4` ile).
             
             **Traceback:**
             ```
@@ -200,7 +155,7 @@ st.markdown("""
 """)
 st.markdown("---")
 
-# Slayt 5: Enerji Tahmin Uygulaması (Streamlit Demosu)
+# Slayt 5: Enerji Tahmin Uygulaması (Etkileşimli Demo)
 st.header("5. Enerji Tahmin Uygulaması (Etkileşimli Demo)")
 st.write("""
     Geliştirdiğimiz bu interaktif web uygulaması, modelimizin pratik kullanımını ve tahmin yeteneğini göstermektedir.
@@ -252,7 +207,6 @@ if st.button('Aktif Güç Tahmin Et'):
     final_input[numerical_features] = scaler.transform(final_input[numerical_features])
 
     # Debug çıktısı: Modele girmeden önceki ölçeklenmiş DataFrame'i göster
-    st.write("Ölçeklenmiş Input DataFrame (Tahmin İçin - Sayısal Özellikler Ölçeklendi):")
     st.dataframe(final_input)
 
     # Tahmin yap (kaydedilen stacking regressor'ı kullanarak)
