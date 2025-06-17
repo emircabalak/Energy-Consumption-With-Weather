@@ -4,14 +4,18 @@ import numpy as np
 import joblib
 import os
 import requests # Dosyaları indirmek için
+import traceback # Hata izlerini görmek için eklendi
 
 st.set_page_config(layout="wide")
 
 # --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
-    # *** SADECE ANA MODELİN GOOGLE DRIVE URL'SİNİ BURAYA YAPIŞTIRIN ***
-    MODEL_URL = "https://drive.google.com/file/d/1MXmLHu3TS04B7psZ72zBA7Tv3zeUYFK_/view?usp=sharing"
+    # *** ANA MODELİN GOOGLE DRIVE URL'Sİ BURAYA YAPIŞTIRILDI ***
+    # Lütfen bu URL'nin Google Drive'dan doğrudan indirme formatında olduğundan emin olun:
+    # "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
+    # Sizin verdiğiniz linkteki dosya kimliği (ID): 1MXmLHu3TS04B7psZ72zBA7Tv3zeUYFK_
+    MODEL_URL = "https://drive.google.com/uc?export=download&id=1MXmLHu3TS04B7psZ72zBA7Tv3zeUYFK_"
 
     # Diğer .joblib dosyaları ve görsellerin yerel (GitHub reposunda) olduğu varsayılıyor.
     required_local_joblibs = [
@@ -28,23 +32,29 @@ def load_resources():
 
     try:
         # Ana modeli Google Drive'dan indir
-        with st.spinner("Ana model yükleniyor..."):
-            response = requests.get(MODEL_URL, stream=True)
-            response.raise_for_status() # HTTP hatalarını kontrol et
-            with open('stacking_regressor_model.joblib', 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            lr_model = joblib.load('stacking_regressor_model.joblib')
+        st.info("Ana model Google Drive'dan indiriliyor...")
+        response = requests.get(MODEL_URL, stream=True)
+        response.raise_for_status() # HTTP hatalarını kontrol et (örn: 404, 403)
+        
+        model_local_path = 'stacking_regressor_model.joblib'
+        with open(model_local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        st.success("Ana model başarıyla indirildi!")
+        
+        # İndirilen modeli yükle
+        st.info("Ana model yükleniyor (joblib.load)...")
+        lr_model = joblib.load(model_local_path)
+        st.success("Ana model başarıyla yüklendi!")
 
         # Diğer .joblib dosyalarını yerel olarak yükle
-        with st.spinner("Yardımcı dosyalar yükleniyor..."):
+        with st.spinner("Yardımcı dosyalar yerel olarak yükleniyor..."):
             scaler = joblib.load('scaler.joblib')
             original_X_columns = joblib.load('original_X_columns.joblib')
             all_descriptions = joblib.load('all_descriptions.joblib')
             numerical_features = joblib.load('numerical_features.joblib')
+        st.success("Tüm yardımcı dosyalar başarıyla yüklendi!")
 
-        st.success("Tüm model ve yardımcı dosyalar başarıyla yüklendi!")
-        
         # Görsel dosyalarının varlığını kontrol et (sadece bilgilendirme)
         for img in required_local_images:
             if not os.path.exists(img):
@@ -54,8 +64,8 @@ def load_resources():
     
     except FileNotFoundError as e:
         st.error(f"""
-            **Gerekli yerel model veya yardımcı dosyalar bulunamadı!**
-            Detay: {e}
+            **HATA: Gerekli yerel dosyalardan biri bulunamadı!**
+            **Detay:** {e}
             Lütfen aşağıdaki dosyaların Streamlit uygulamanızla aynı dizinde (ve GitHub deponuzda) olduğundan emin olun:
             - `scaler.joblib`
             - `original_X_columns.joblib`
@@ -67,20 +77,48 @@ def load_resources():
             
             Bu dosyaları oluşturmak için lütfen **Canvas belgesini (energy_prediction_model) çalıştırın**.
             Ardından bu Streamlit uygulamasını tekrar başlatın.
+            
+            **Traceback:**
+            ```
+            {traceback.format_exc()}
+            ```
         """)
         st.stop()
     except requests.exceptions.RequestException as e:
         st.error(f"""
-            **Ana model Google Drive'dan indirilirken bir hata oluştu!**
-            Detay: {e}
-            Lütfen Google Drive URL'nizin doğru olduğundan ve dosyanıza herkese açık erişimin verildiğinden emin olun.
+            **HATA: Ana model Google Drive'dan indirilirken bir ağ veya HTTP hatası oluştu!**
+            **Detay:** {e}
+            Lütfen Google Drive URL'nizin doğru olduğundan, dosyanıza herkese açık erişimin verildiğinden ve ağ bağlantınızın stabil olduğundan emin olun.
+            
+            **Traceback:**
+            ```
+            {traceback.format_exc()}
+            ```
         """)
         st.stop()
-    except Exception as e:
+    except joblib.externals.loky.reusable_executor.PicklingError as e:
         st.error(f"""
-            **Bir hata oluştu!**
-            Detay: {e}
-            Lütfen tüm dosyaların doğru şekilde yapılandırıldığından emin olun.
+            **HATA: Joblib modeli yüklenirken bir PicklingError oluştu!**
+            Bu, model dosyasının bozuk olduğu veya yükleme ortamında uyumsuzluk olduğu anlamına gelebilir.
+            **Detay:** {e}
+            Lütfen model eğitim dosyasını tekrar çalıştırıp modeli yeniden kaydetmeyi deneyin.
+            
+            **Traceback:**
+            ```
+            {traceback.format_exc()}
+            ```
+        """)
+        st.stop()
+    except Exception as e: # Diğer tüm beklenmeyen hatalar
+        st.error(f"""
+            **HATA: Beklenmeyen bir sorun oluştu!**
+            **Detay:** {e}
+            Lütfen logları ve Stack Overflow gibi kaynakları inceleyerek bu hatanın kaynağını araştırmayı deneyin.
+            
+            **Traceback:**
+            ```
+            {traceback.format_exc()}
+            ```
         """)
         st.stop()
 
