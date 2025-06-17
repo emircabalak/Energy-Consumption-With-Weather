@@ -15,7 +15,7 @@ def load_resources():
     # Lütfen bu URL'nin Google Drive'dan doğrudan indirme formatında olduğundan emin olun:
     # "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
     # Sizin verdiğiniz linkteki dosya kimliği (ID): 1MXmLHu3TS04B7psZ72zBA7Tv3zeUYFK_
-    MODEL_URL = "https://drive.google.com/file/d/1dWD7tJozZVhLff-rM5uZc1ChJ9SxwXr3/view?usp=sharing"
+    MODEL_URL = "https://drive.google.com/file/d/1_GfyOWdbn83vBz1ONldcZNzR_yl-B9HT/view?usp=sharing"
 
     # Diğer .joblib dosyaları ve görsellerin yerel (GitHub reposunda) olduğu varsayılıyor.
     required_local_joblibs = [
