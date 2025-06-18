@@ -123,7 +123,7 @@ def load_resources():
         required_images = [
             'sicaklik_nem_dagilimi.png',
             'sicaklik_nem_dagilimi_scatter.png',
-            'santral.png'
+            'santral.jpg'
         ]
         for img in required_images:
             if not os.path.exists(img):
