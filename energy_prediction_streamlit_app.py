@@ -16,7 +16,7 @@ def load_resources():
     # Tüm joblib dosyaları yerelden yüklenecek
     # Modelin artık 'lr.joblib' olduğunu varsayıyoruz
     required_joblibs = [
-        'lr.joblib', # Model dosyası adı güncellendi
+        'stacking_regressor_model.joblib', # Model dosyası adı güncellendi
         'scaler.joblib',
         'original_X_columns.joblib',
         'all_descriptions.joblib',
@@ -40,7 +40,7 @@ def load_resources():
                 st.success(f"'{filename}' başarıyla yüklendi!")
 
         # Yüklenen objeleri değişkenlere ata
-        lr_model = downloaded_objects['lr.joblib'] # Değişken adı güncellendi
+        lr_model = downloaded_objects['stacking_regressor_model.joblib'] # Değişken adı güncellendi
         scaler = downloaded_objects['scaler.joblib']
         original_X_columns = downloaded_objects['original_X_columns.joblib']
         all_descriptions = downloaded_objects['all_descriptions.joblib']
