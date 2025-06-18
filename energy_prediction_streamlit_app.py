@@ -17,7 +17,7 @@ st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini 
 def load_resources():
     # Ana model dosyasının URL'si (Google Drive'dan)
     # Bu model 'stacking_regressor_model.joblib' olacak ve URL'den indirilecek.
-    MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
+    MODEL_URL = "https://drive.google.com/uc?export=download&id=1RPnXBEpexRFLViV6orQL28yuo8XossVS" 
 
     # Modelin yerel olarak kaydedileceği dosya adı
     MODEL_PATH = "stacking_regressor_model.joblib" 
