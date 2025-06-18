@@ -12,18 +12,18 @@ st.set_page_config(layout="wide")
 st.title('Enerji Tüketimi Tahmin Uygulaması')
 st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini tahmin edin.')
 
-# --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
+# --- Fonksiyon: Gerekli Dosyaların Yüklendiğinden Emin Olma ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
     # Ana model dosyasının URL'si (Google Drive'dan)
-    # Google Drive dosya kimliği: 1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV
+    # Bu model 'stacking_regressor_model.joblib' olacak ve URL'den indirilecek.
     MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
 
-    # Modelin yerel olarak kaydedileceği dosya adı (Lineer Regresyon modeli)
+    # Modelin yerel olarak kaydedileceği dosya adı
     MODEL_PATH = "stacking_regressor_model.joblib" 
 
     # Diğer yardımcı joblib dosyalarının yolları (yerel olarak bulunacaklar)
-    SCALER_PATH = "stacking_regressor_model.joblib"
+    SCALER_PATH = "scaler.joblib" # Bu dosya adı düzeltildi
     ORIGINAL_X_COLUMNS_PATH = "original_X_columns.joblib"
     ALL_DESCRIPTIONS_PATH = "all_descriptions.joblib"
     NUMERICAL_FEATURES_PATH = "numerical_features.joblib"
@@ -35,7 +35,7 @@ def load_resources():
         'santral.jpg' 
     ]
 
-    # Büyük model dosyasını (lr.joblib) URL'den indirme
+    # Büyük model dosyasını (stacking_regressor_model.joblib) URL'den indirme
     if not os.path.exists(MODEL_PATH):
         st.info(f"Büyük model dosyası '{MODEL_PATH}' indiriliyor, lütfen bekleyiniz...")
         try:
@@ -94,7 +94,7 @@ def load_resources():
     # Diğer joblib dosyaları (scaler, original_X_columns, all_descriptions, numerical_features)
     # yerel olarak yüklenir.
     required_joblibs_local = [
-        MODEL_PATH, # Artık yerel olarak var veya indirildi
+        MODEL_PATH, # Bu dosya artık yerel olarak var veya indirildi
         SCALER_PATH,
         ORIGINAL_X_COLUMNS_PATH,
         ALL_DESCRIPTIONS_PATH,
@@ -105,10 +105,11 @@ def load_resources():
     try:
         with st.spinner("Yardımcı dosyalar yerelden yükleniyor..."):
             for filename in required_joblibs_local:
+                # Dosyanın yerel olarak var olup olmadığını kontrol et
                 if not os.path.exists(filename):
-                    raise FileNotFoundError(f"'{filename}' dosyası bulunamadı. Lütfen projenizin ana dizininde olduğundan emin olun.")
+                    raise FileNotFoundError(f"'{filename}' dosyası bulunamadı. Lütfen projenizin ana dizininde (GitHub reposunda) olduğundan emin olun.")
                 
-                # Model dosyası zaten yukarıda işlendi veya indirildi, tekrar info basmaya gerek yok
+                # Model dosyası zaten yukarıda işlendi veya indirildi, tekrar bilgi basmaya gerek yok
                 if filename != MODEL_PATH:
                     st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
                 
@@ -118,7 +119,8 @@ def load_resources():
                     st.success(f"'{filename}' başarıyla yüklendi!")
 
         # Yüklenen objeleri değişkenlere ata
-        lr_model = downloaded_objects[MODEL_PATH]
+        # 'lr_model' artık 'stacking_regressor_model.joblib' dosyasından yükleniyor
+        lr_model = downloaded_objects[MODEL_PATH] 
         scaler = downloaded_objects[SCALER_PATH]
         original_X_columns = downloaded_objects[ORIGINAL_X_COLUMNS_PATH]
         all_descriptions = downloaded_objects[ALL_DESCRIPTIONS_PATH]
@@ -135,7 +137,7 @@ def load_resources():
         st.error(f"""
             **HATA: Gerekli dosyalardan biri bulunamadı!**
             **Detay:** {e}
-            Lütfen projenizin tüm model, yardımcı ve görsel dosyalarının Streamlit uygulamanızla **aynı dizinde** olduğundan emin olun.
+            Lütfen projenizin tüm model, yardımcı ve görsel dosyalarının Streamlit uygulamanızla **aynı dizinde** (GitHub reposunda) olduğundan emin olun.
             Bu dosyaları oluşturmak için lütfen **model eğitim dosyasını (energy_prediction_model.ipynb) çalıştırın**.
             
             **Traceback:**
@@ -251,7 +253,7 @@ st.subheader('Aktif Güç Tahmini Yapın')
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    current = st.number_input('Akım (Current)', min_value=0.0, value=2.53, format="%.2f") # İlk satır değerleri varsayılan yapıldı
+    current = st.number_input('Akım (Current)', min_value=0.0, value=2.53, format="%.2f") # Default values set to first row
     voltage = st.number_input('Voltaj (Voltage)', min_value=0.0, value=122.20, format="%.2f")
     temp = st.number_input('Sıcaklık (°C)', min_value=-50.0, value=24.19, format="%.2f")
 
@@ -263,35 +265,35 @@ with col2:
 with col3:
     deg = st.number_input('Rüzgar Yönü (°)', min_value=0.0, max_value=360.0, value=0.00, format="%.2f")
     
-    # Tüm benzersiz description değerlerini al (kaydedilenden yüklendi)
-    # Varsayılan değeri 'clear sky' olarak ayarla
+    # Get all unique description values (loaded from saved file)
+    # Set default value to 'clear sky'
     default_description_index = all_descriptions.index('clear sky') if 'clear sky' in all_descriptions else 0
     description = st.selectbox('Hava Durumu Açıklaması (Description)', all_descriptions, index=default_description_index)
 
 
-# Tahmin Yap butonu
+# Predict button
 if st.button('Aktif Güç Tahmin Et'):
-    # Kullanıcı girdilerini bir DataFrame'e dönüştür
+    # Convert user inputs to a DataFrame
     input_data = pd.DataFrame([[current, voltage, temp, pressure, humidity, speed, deg, description]],
                                columns=['current', 'voltage', 'temp', 'pressure', 'humidity', 'speed', 'deg', 'description'])
 
-    # Girdiye one-hot encoding uygula
+    # Apply one-hot encoding to the input
     input_encoded = pd.get_dummies(input_data, columns=['description'], dtype='int')
 
-    # Eğitimde kullanılan tüm sütunları içerdiğinden emin ol (eksik sütunları 0 ile doldur)
+    # Ensure all columns from original_X_columns are present (fill missing with 0)
     final_input = input_encoded.reindex(columns=original_X_columns, fill_value=0)
 
-    # Debug çıktısı: Tahmin için hazırlanan nihai DataFrame'i göster
-    st.write("Final Input DataFrame (Özellik İsimleri ile - Öncesi Ölçekleme):")
+    # Debug output: Show the final DataFrame prepared for prediction
+    st.write("Final Input DataFrame (with Feature Names - Before Scaling):")
     st.dataframe(final_input)
 
-    # Sadece sayısal özellikleri ölçekle
+    # Scale only the numerical features
     final_input[numerical_features] = scaler.transform(final_input[numerical_features])
 
-    # Debug çıktısı: Modele girmeden önceki ölçeklenmiş DataFrame'i göster
+    # Debug output: Show the scaled DataFrame before entering the model
     st.dataframe(final_input)
 
-    # Tahmin yap (kaydedilen stacking regressor'ı kullanarak)
+    # Make prediction (using the loaded Stacking Regressor model)
     prediction = lr_model.predict(final_input)[0]
 
     st.subheader('Tahmin Edilen Aktif Güç:')
@@ -299,7 +301,7 @@ if st.button('Aktif Güç Tahmin Et'):
 
 st.markdown("---")
 
-# Slayt 6: Sonuç ve Gelecek Adımlar
+# Slide 6: Conclusion and Future Steps
 st.header("6. Sonuç ve Gelecek Adımlar")
 st.markdown("""
 * **Projenin Temel Çıkarımları:**
