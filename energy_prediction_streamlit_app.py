@@ -18,7 +18,7 @@ st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini 
 # LÜTFEN AŞAĞIDAKİ MODEL_URL'Yİ KENDİ GOOGLE DRIVE DOSYA KİMLİĞİNİZİ KULLANARAK GÜNCELLEYİN!
 # Örnek: Eğer dosya paylaşım URL'niz 'https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0jklmno/view?usp=sharing' ise,
 # 'SİZİN_GOOGLE_DRIVE_DOSYA_KİMLİĞİNİZ' yerine '1a2b3c4d5e6f7g8h9i0jklmno' yazmalısınız.
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
+MODEL_URL = "https://huggingface.co/emircabalak/energy-prediction-model/resolve/main/stacking_regressor_model.joblib" 
 
 MODEL_PATH = "stacking_regressor_model.joblib"
 SCALER_PATH = "scaler.joblib"
