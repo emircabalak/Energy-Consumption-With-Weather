@@ -4,6 +4,8 @@ import numpy as np
 import joblib
 import os
 import traceback # Hata izlerini görmek için eklendi
+import requests # Model dosyasını URL'den indirmek için eklendi
+import re # 'confirm' parametresini ayıklamak için eklendi
 
 st.set_page_config(layout="wide")
 
@@ -13,38 +15,114 @@ st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini 
 # --- Gerekli Dosyaların Yüklendiğinden Emin Olma Fonksiyonu ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
 def load_resources():
-    # Tüm joblib dosyaları yerelden yüklenecek
-    # Modelin artık 'lr.joblib' olduğunu varsayıyoruz
-    required_joblibs = [
-        'stacking_regressor_model.joblib', # Model dosyası adı güncellendi
-        'scaler.joblib',
-        'original_X_columns.joblib',
-        'all_descriptions.joblib',
-        'numerical_features.joblib'
-    ]
+    # Ana model dosyasının URL'si (Google Drive'dan)
+    # Google Drive dosya kimliği: 1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV
+    MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
+
+    # Modelin yerel olarak kaydedileceği dosya adı (Lineer Regresyon modeli)
+    MODEL_PATH = "lr.joblib" 
+
+    # Diğer yardımcı joblib dosyalarının yolları (yerel olarak bulunacaklar)
+    SCALER_PATH = "scaler.joblib"
+    ORIGINAL_X_COLUMNS_PATH = "original_X_columns.joblib"
+    ALL_DESCRIPTIONS_PATH = "all_descriptions.joblib"
+    NUMERICAL_FEATURES_PATH = "numerical_features.joblib"
+
+    # Görsel dosyalarının yolları (yerel olarak bulunacaklar)
     required_images = [
         'sicaklik_nem_dagilimi.png',
         'sicaklik_nem_dagilimi_scatter.png',
-        'santral.jpg' # Resim dosyasının uzantısı .jpg olarak güncellendi
+        'santral.jpg' 
     ]
 
+    # Büyük model dosyasını (lr.joblib) URL'den indirme
+    if not os.path.exists(MODEL_PATH):
+        st.info(f"Büyük model dosyası '{MODEL_PATH}' indiriliyor, lütfen bekleyiniz...")
+        try:
+            # requests.Session kullanarak çerezleri ve oturum durumunu koru
+            session = requests.Session()
+            
+            # İlk indirme denemesi (genellikle onay sayfasına veya doğrudan indirmeye yönlendirir)
+            response = session.get(MODEL_URL, stream=True)
+            response.raise_for_status() # HTTP hatalarını kontrol et (örn. 404 Not Found)
+
+            # Google Drive'ın büyük dosyalar için onay sayfasını kontrol et
+            # Genellikle bu sayfa HTML döner ve 'confirm' parametresi içerir.
+            # Ayrıca yanıt başlıklarında 'Content-Disposition' olup olmadığını kontrol ederek doğrudan bir dosya mı yoksa HTML mi geldiğini anlarız.
+            if 'Content-Type' in response.headers and 'text/html' in response.headers['Content-Type'] and 'Content-Disposition' not in response.headers:
+                st.warning("Google Drive büyük dosya uyarısı algılandı. Onay sonrası tekrar indirme deneniyor...")
+                
+                # Onay sayfasından 'confirm' parametresini ayıkla
+                # Bu regex deseni, Google Drive'ın onay sayfasındaki 'confirm' değerini bulmak için kullanılır.
+                match = re.search(r'name="confirm" value="([A-Za-z0-9_]+)"', response.text)
+                if match:
+                    confirm_value = match.group(1)
+                    # Yeni indirme URL'sini 'confirm' parametresiyle oluştur.
+                    # Bazen bu adım için POST isteği gerekir.
+                    confirmed_url = MODEL_URL + "&confirm=" + confirm_value
+                    
+                    # POST isteği ile onay ver ve gerçek indirmeyi başlat
+                    response = session.post(confirmed_url, stream=True)
+                    response.raise_for_status() # İkinci denemede de HTTP hatalarını kontrol et
+                    st.info("Onay sonrası indirme isteği gönderildi.")
+                else:
+                    st.warning("Google Drive onay sayfası algılandı ancak 'confirm' parametresi bulunamadı. Dosya yine de indirilmeye çalışılıyor.")
+            
+            # Dosyayı kaydet
+            with open(MODEL_PATH, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            st.success(f"Büyük model dosyası '{MODEL_PATH}' başarıyla indirildi.")
+            # İndirilen dosyanın boyutunu kontrol et (hata ayıklama için)
+            file_size_bytes = os.path.getsize(MODEL_PATH)
+            st.info(f"İndirilen dosya boyutu: {file_size_bytes / (1024*1024):.2f} MB")
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"""
+                **HATA: Model dosyasını indirirken bir sorun oluştu!**
+                **Detay:** {e}
+                Lütfen '{MODEL_PATH}' dosyasının barındığı URL'nin doğru, erişilebilir ve herkese açık olduğundan emin olun.
+                Google Drive'ın indirme sınırlamaları nedeniyle bu sorunlar yaşanabilir.
+                
+                **Traceback:**
+                ```
+                {traceback.format_exc()}
+                ```
+            """)
+            st.stop()
+    
+    # Diğer joblib dosyaları (scaler, original_X_columns, all_descriptions, numerical_features)
+    # yerel olarak yüklenir.
+    required_joblibs_local = [
+        MODEL_PATH, # Artık yerel olarak var veya indirildi
+        SCALER_PATH,
+        ORIGINAL_X_COLUMNS_PATH,
+        ALL_DESCRIPTIONS_PATH,
+        NUMERICAL_FEATURES_PATH
+    ]
+    
     downloaded_objects = {}
     try:
-        with st.spinner("Model ve yardımcı dosyalar yerelden yükleniyor..."):
-            for filename in required_joblibs:
+        with st.spinner("Yardımcı dosyalar yerelden yükleniyor..."):
+            for filename in required_joblibs_local:
                 if not os.path.exists(filename):
-                    raise FileNotFoundError(f"Dosya bulunamadı: {filename}. Lütfen projenizin ana dizininde olduğundan emin olun.")
+                    raise FileNotFoundError(f"'{filename}' dosyası bulunamadı. Lütfen projenizin ana dizininde olduğundan emin olun.")
                 
-                st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
+                # Model dosyası zaten yukarıda işlendi veya indirildi, tekrar info basmaya gerek yok
+                if filename != MODEL_PATH:
+                    st.info(f"'{filename}' yerelden yükleniyor (joblib.load)...")
+                
                 downloaded_objects[filename] = joblib.load(filename)
-                st.success(f"'{filename}' başarıyla yüklendi!")
+                
+                if filename != MODEL_PATH:
+                    st.success(f"'{filename}' başarıyla yüklendi!")
 
         # Yüklenen objeleri değişkenlere ata
-        lr_model = downloaded_objects['stacking_regressor_model.joblib'] # Değişken adı güncellendi
-        scaler = downloaded_objects['scaler.joblib']
-        original_X_columns = downloaded_objects['original_X_columns.joblib']
-        all_descriptions = downloaded_objects['all_descriptions.joblib']
-        numerical_features = downloaded_objects['numerical_features.joblib']
+        lr_model = downloaded_objects[MODEL_PATH]
+        scaler = downloaded_objects[SCALER_PATH]
+        original_X_columns = downloaded_objects[ORIGINAL_X_COLUMNS_PATH]
+        all_descriptions = downloaded_objects[ALL_DESCRIPTIONS_PATH]
+        numerical_features = downloaded_objects[NUMERICAL_FEATURES_PATH]
 
         # Görsel dosyalarının varlığını kontrol et (sadece bilgilendirme)
         for img in required_images:
@@ -103,8 +181,8 @@ st.markdown("""
 """)
 
 # Santral görselini ekleme: Eğer santral.jpg bulunamazsa placeholder kullan
-if os.path.exists('santral.jpg'): # Dosya uzantısı .jpg olarak güncellendi
-    st.image("santral.jpg", caption="Enerji Santrali Örneği", use_column_width=True) # Dosya uzantısı .jpg olarak güncellendi
+if os.path.exists('santral.jpg'):
+    st.image("santral.jpg", caption="Enerji Santrali Örneği", use_column_width=True)
 else:
     st.image("https://placehold.co/800x450/333333/FFFFFF?text=Enerji%20Santrali%20Görseli", caption="Enerji Santrali Örneği (Görsel Bulunamadı)", use_column_width=True)
 
