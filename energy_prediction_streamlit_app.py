@@ -20,10 +20,10 @@ def load_resources():
     MODEL_URL = "https://drive.google.com/uc?export=download&id=1S7TMzIAz9pAFKVwWXSWybxVG37Opi4SV" 
 
     # Modelin yerel olarak kaydedileceği dosya adı (Lineer Regresyon modeli)
-    MODEL_PATH = "lr.joblib" 
+    MODEL_PATH = "stacking_regressor.joblib" 
 
     # Diğer yardımcı joblib dosyalarının yolları (yerel olarak bulunacaklar)
-    SCALER_PATH = "scaler.joblib"
+    SCALER_PATH = "stacking_regressor_model.joblib"
     ORIGINAL_X_COLUMNS_PATH = "original_X_columns.joblib"
     ALL_DESCRIPTIONS_PATH = "all_descriptions.joblib"
     NUMERICAL_FEATURES_PATH = "numerical_features.joblib"
