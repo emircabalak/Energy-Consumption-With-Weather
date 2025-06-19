@@ -299,8 +299,8 @@ st.markdown("""
 """)
 st.markdown("---")
 
-# Slayt 6: Enerji Tahmin Uygulaması (Etkileşimli Demo)
-st.header("6. Enerji Tahmin Uygulaması (Etkileşimli Demo)")
+# Slayt 6: Enerji Tahmin Uygulaması
+st.header("6. Canlı Enerji Tahmin Uygulaması")
 st.write("""
     Geliştirdiğimiz bu interaktif web uygulaması, modelimizin pratik kullanımını ve tahmin yeteneğini göstermektedir.
     Aşağıdaki bölümde, istediğiniz parametreleri girerek aktif güç tüketimi için anında tahminler alabilirsiniz.
