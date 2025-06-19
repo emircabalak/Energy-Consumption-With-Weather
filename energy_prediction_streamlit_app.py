@@ -10,7 +10,6 @@ import re # 'confirm' parametresini ayıklamak için eklendi
 st.set_page_config(layout="wide")
 
 st.title('Enerji Tüketimi Tahmin Uygulaması')
-st.write('Hava durumu ve elektrik parametrelerine göre aktif güç tüketimini tahmin edin.')
 
 # --- Fonksiyon: Gerekli Dosyaların Yüklendiğinden Emin Olma ---
 @st.cache_resource # Modelleri bir kez yükleyip önbelleğe almak için
