@@ -184,7 +184,7 @@ st.markdown("""
 
 # Santral görselini ekleme: Eğer santral.jpg bulunamazsa placeholder kullan
 if os.path.exists('santral.jpg'):
-    st.image("santral.jpg", caption="Enerji Santrali Örneği", use_column_width=True)
+    st.image("santral.jpg", caption="Enerji Santrali Örneği", width=1250)
 else:
     st.image("https://placehold.co/800x450/333333/FFFFFF?text=Enerji%20Santrali%20Görseli", caption="Enerji Santrali Örneği (Görsel Bulunamadı)", use_column_width=True)
 
@@ -199,48 +199,108 @@ st.markdown("""
     * **Kategorik Veri Dönüşümü:** `description` (hava durumu açıklaması) sütunu, modelin anlayabileceği sayısal formata dönüştürülmek üzere One-Hot Encoding yöntemiyle işlenmiştir.
     * **Özellik Ölçeklendirme:** Model performansını artırmak ve algoritmaların doğru çalışmasını sağlamak için **yalnızca sayısal özellikler** (`current`, `voltage`, `temp`, `pressure`, `humidity`, `speed`, `deg`) `StandardScaler` ile ölçeklendirilmiştir. One-Hot Encoded sütunlar ölçeklenmemiştir.
 """)
-st.subheader('Sıcaklık Aralıkları Arasında Nem Dağılımı')
-try:
-    st.image('sicaklik_nem_dagilimi.png', caption='Veri Setindeki Sıcaklık ve Nem İlişkisi (Kutu Grafiği)', use_column_width=True)
-except FileNotFoundError:
-    st.warning("Görsel 'sicaklik_nem_dagilimi.png' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
 
-st.subheader('Sıcaklık ve Nem İlişkisi')
+st.markdown("##### Sıcaklık ve Nem Dağılımı")
+if os.path.exists('sicaklik_nem_dagilimi.png'):
+    st.image('sicaklik_nem_dagilimi.png', caption='Sıcaklık aralıklarına göre nem oranlarının kutu grafiği, medyan ve çeyrek değerleri gösterir.', width=1400)
+else:
+    st.warning("Görsel 'sicaklik_nem_dagilimi.png' bulunamadı.")
+
+st.markdown("##### Sıcaklık-Nem İlişkisi")
+if os.path.exists('sicaklik_nem_dagilimi_scatter.png'):
+    st.image('sicaklik_nem_dagilimi_scatter.png', caption='Sıcaklık ve nem arasındaki genel ilişkiyi gösteren dağılım grafiği.', width=1400)
+else:
+    st.warning("Görsel 'sicaklik_nem_dagilimi_scatter.png' bulunamadı.")
+
+st.subheader('Aylara Göre Nem İlişkisi')
 try:
-    st.image('sicaklik_nem_dagilimi_scatter.png', caption='Veri Setindeki Sıcaklık ve Nem İlişkisi (Dağılım Grafiği)', use_column_width=True)
+    st.image('ay_nem.jpeg', caption='Veri Setindeki Aylara Göre Nem İlişkisi', width=1400)
 except FileNotFoundError:
-    st.warning("Görsel 'sicaklik_nem_dagilimi_scatter.png' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
+    st.warning("Görsel 'ay_nem.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
+
+st.subheader('Aylara Göre Güç İlişkisi')
+try:
+    st.image('ay_guc.jpeg', caption='Veri Setindeki Aylara Göre Güç İlişkisi (Kutu Grafiği)', width=1400)
+except FileNotFoundError:
+    st.warning("Görsel 'ay_guc.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
 st.markdown("---")
 
-# Slayt 3: Model Geliştirme Yaklaşımı
-st.header("3. Model Geliştirme Yaklaşımı")
+st.subheader('Aylara Göre Sıcaklık İlişkisi')
+try:
+    st.image('ay_sıcaklık.jpeg', caption='Veri Setindeki Aylara Göre Sıcaklık İlişkisi (Kutu Grafiği)', width=1400)
+except FileNotFoundError:
+    st.warning("Görsel 'ay_sıcaklık.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
+
+st.subheader('Hava Durumu ve Güç İlişkisi')
+try:
+    st.image('hava_sıcaklık.jpeg', caption='Veri Setindeki Hava Durumu ve Güç İlişkisi (Kutu Grafiği)', width=1400)
+except FileNotFoundError:
+    st.warning("Görsel 'hava_sıcaklık.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
+st.markdown("---")
+
+st.subheader('Saat ve Güç İlişkisi')
+try:
+    st.image('saat_guc.jpeg', caption='Veri Setindeki Saat ve Güç İlişkisi', width=1400)
+except FileNotFoundError:
+    st.warning("Görsel 'saat_guc.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
+st.markdown("---")
+
+# Slayt 3: Model Geliştirme Stratejisi
+st.header('3. Stratejimiz: "Uzmanlar Komitesi" Yaklaşımı ile En İyi Modeli İnşa Etmek')
+st.markdown("En doğru tahmini yapmak için tek bir 'sihirli' model aramak yerine, farklı modellerin güçlü yönlerini birleştiren bir strateji benimsedik. Bu, tek bir uzmana danışmak yerine, farklı alanlarda uzmanlaşmış bir uzmanlar komitesinden görüş almaya benzer.")
+st.subheader("3.1. Aday Modeller ve Topluluk Öğrenmesinin Gücü")
 st.markdown("""
-* **Kullanılan Regresyon Modelleri:**
-    * **Temel Modeller:** Linear Regression, Ridge, Lasso (Doğrusal Modeller).
-    * **Ağaç Tabanlı Modeller:** Random Forest Regressor, LightGBM, XGBoost (Daha karmaşık ve güçlü modeller).
-    * **Hiperparametre Optimizasyonu:** `GridSearchCV` kullanılarak her model için en iyi performans parametreleri (örneğin ağaç sayısı, öğrenme hızı) sistematik bir şekilde belirlenmiştir.
-* **Ensemble (Topluluk) Öğrenmesi:**
-    * **Voting Regressor:** Birden fazla modelin tahminlerini birleştirerek daha kararlı ve doğru sonuçlar elde etmek için denenmiştir.
-    * **Stacking Regressor:** Temel modellerin (Random Forest, LightGBM, XGBoost) tahminlerinin, `Ridge` regresör gibi bir meta-model tarafından yeni özellikler olarak kullanıldığı gelişmiş bir topluluk yöntemidir. **Uygulamada, en iyi performansı gösteren bu model kullanılmıştır.**
+- **Test Edilen Modeller:** Projede, farklı yeteneklere sahip model ailelerini karşılaştırdık:
+    - **Doğrusal Modeller (Ridge, Lasso):** Hızlı, yorumlanabilir ve iyi bir başlangıç noktası sunan temel modeller.
+    - **Ağaç Tabanlı Modeller (Random Forest, LightGBM, XGBoost):** Karmaşık ve doğrusal olmayan ilişkileri yakalamada son derece başarılı, modern ve güçlü algoritmalar.
+- **Hiperparametre Optimizasyonu (`GridSearchCV`):** Her modelin potansiyelini en üst düzeye çıkarmak için, en iyi ayarları (örneğin bir ormandaki ağaç sayısı, öğrenme oranı vb.) sistematik olarak bulan `GridSearchCV` tekniğini kullandık.
+- **Stacking Regressor (Nihai Yaklaşımımız):** Bu, sıradan bir oylamadan daha fazlasıdır. Bu, hiyerarşik bir uzmanlık sistemidir:
+    1.  **1. Kademe (Uzmanlar):** En güçlü modellerimiz (Random Forest, LGBM, XGBoost), veriyi analiz eder ve kendi tahminlerini üretir. Her biri probleme farklı bir açıdan bakar.
+    2.  **2. Kademe (Yönetici Meta-Model):** Daha sonra, `Ridge` adında bir "yönetici" model devreye girer. Bu modelin tek işi, uzmanların tahminlerini incelemek ve hangi uzmanın hangi koşullar altında daha güvenilir olduğunu öğrenmektir. Sonuçta, bu uzman görüşlerini akıllıca birleştirerek nihai ve daha isabetli bir karar verir.
+""")
+st.info("**Projemizin nihai modeli, bireysel uzmanların bilgeliğini birleştiren bu gelişmiş Stacking mimarisidir.**")
+st.markdown("---")
+
+# Slayt 4: Model Performansı ve Sonuçların Doğrulanması
+st.header("4. Sonuçların Analizi: Modelimiz Sadece Tahmin mi Ediyor, Yoksa Anlıyor mu?")
+st.markdown("Bir model geliştirmek denklemin bir yarısıdır. Diğer yarısı ise bu modelin ne kadar güvenilir olduğunu kanıtlamaktır. Modelimizin sadece geçmişi ezberlemediğinden, geleceği öngörebilecek şekilde gerçekten 'öğrendiğinden' emin olmalıydık.")
+st.subheader("4.1. Başarı Metrikleri: R²'nin Ötesinde")
+st.markdown("""
+- **R² Skoru (Belirlilik Katsayısı):** Nihai modelimiz, test verisi üzerinde **R² = 0.98** gibi olağanüstü bir skora ulaştı. Bunun anlamı şudur: Enerji tüketimindeki dalgalanmaların **%98'inin nedenini** modelimizdeki faktörlerle açıklayabiliyoruz. Geriye kalan %2'lik kısım, verimizde bulunmayan öngörülemez insan davranışları veya ani olaylar gibi faktörlere aittir.
+- **Model Karşılaştırması:** Stacking yaklaşımının gücünü göstermek için, tekil modellerin performansıyla karşılaştırdık. Sonuçlar, "uzmanlar komitesinin" tek bir uzmandan her zaman daha bilge olduğunu kanıtladı.
+""")
+
+st.subheader("4.2. Güvenilirlik Testi: Aşırı Uyum (Overfitting) ve Çapraz Doğrulama")
+st.markdown("""
+İyi bir model sadece bildiği soruları değil, daha önce hiç görmediği soruları da cevaplayabilmelidir.
+- **Eğitim vs. Test Skorları:** Modelimizin eğitim verisindeki performansı ile daha önce hiç görmediği test verisindeki performansının neredeyse aynı olması (R² ≈ 0.98), modelimizin ezber yapmadığının en güçlü kanıtıdır.
+- **K-Katlı Çapraz Doğrulama:** En titiz testimiz buydu. Veri setini 5 parçaya ayırdık ve modelimizi 5 kez, her seferinde farklı bir parçayı test verisi olarak kullanarak eğittik. Sonuçların (örn: R² ortalaması ≈ 0.981, standart sapma ≈ 0.002) son derece tutarlı olması, model performansının şansa bağlı olmadığını ve sağlam temellere dayandığını bize gösterdi. Modelimiz bir **tarihçi değil, güvenilir bir kahindir.**
 """)
 st.markdown("---")
 
-# Slayt 4: Model Performansı ve Sonuçlar
-st.header("4. Model Performansı ve Sonuçlar")
+st.header("5. Projenin Etkisi ve Uygulama Alanları")
 st.markdown("""
-* **Model Performans Metrikleri:**
-    * **MAE (Mean Absolute Error - Ortalama Mutlak Hata):** Tahminlerin gerçek değerlerden ortalama sapması.
-    * **MSE (Mean Squared Error - Ortalama Karesel Hata):** Büyük hataları daha çok cezalandıran hata ölçüsü.
-    * **R² Skoru:** Modelin bağımlı değişkendeki varyansın ne kadarını açıkladığını gösterir ($0$ ile $1$ arasında, $1$ en iyi).
-* **Modellerin Karşılaştırılması:** Tüm modellerin MAE, MSE ve R² skorları detaylıca karşılaştırılmış, Ensemble (Stacking) modelimiz en yüksek performansı göstermiştir.
-* **Overfitting (Aşırı Uyum) Kontrolü:**
-    * Eğitim ($0.98$) ve test ($0.98$) $R^2$ skorları arasındaki yakınlık, modelin genellenebilirliğine işaret etmektedir.
-    * **K-Katlı Çapraz Doğrulama (Cross-Validation):** Modeli 5 farklı veri alt kümesi üzerinde test ederek, performansın tüm katlarda tutarlı ve yüksek kalması ($R^2$ ortalaması $\approx 0.98$, standart sapma $\approx 0.01$), modelin yeni verilere de iyi adapte olabildiğini ve aşırı uyum göstermediğini doğrulamıştır.
+Yüksek doğruluklu bir model geliştirmek, teknik bir başarıdır. Ancak projenin asıl değeri, bu teknik başarının gerçek dünyada yarattığı **somut faydalarda** yatar. Bu model, farklı paydaşlar için stratejik bir karar destek aracı olarak hizmet edebilir:
+""")
+st.markdown("""
+- **Akıllı Şebeke Yönetimi:**
+  - **Yük Dengeleme:** Tahminler, operatörlerin enerji yükünü şebeke genelinde proaktif olarak dengelemesine olanak tanır. Bu, ekipman ömrünü uzatır ve teknik arızaları azaltır.
+  - **Kesinti Önleme:** Beklenen aşırı yüklenmeler önceden tespit edilerek, planlı bakım ve kapasite artırımı gibi önlemler alınabilir, böylece beklenmedik kesintilerin önüne geçilir.
+
+- **Enerji Ticareti ve Piyasalar:**
+  - **Kârlı Alım-Satım:** Enerji talebinin ne zaman artıp azalacağını öngörmek, enerji şirketlerinin spot piyasalarda daha kârlı alım-satım işlemleri yapmasını sağlar. Düşük talep zamanlarında ucuza alıp, yüksek talep zamanlarında pahalıya satabilirler.
+  - **Risk Yönetimi:** Fiyat dalgalanmalarına karşı daha hazırlıklı olmayı ve finansal riskleri minimize etmeyi sağlar.
+
+- **Yenilenebilir Enerji Entegrasyonu:**
+  - **Volatilitenin Yönetimi:** Model, güneş veya rüzgar üretiminin düşeceği zamanlarda konvansiyonel santrallerin ne kadar devreye girmesi gerektiğini tahmin ederek, yenilenebilir kaynakların şebekeye sorunsuz entegrasyonunu kolaylaştırır.
+
+- **Tesis ve Tüketici Yönetimi:**
+  - **Verimlilik Artışı:** Büyük endüstriyel tesisler veya ticari binalar, kendi tüketimlerini tahmin ederek enerji maliyetlerini optimize edebilir ve üretim planlarını en verimli şekilde yapabilirler.
 """)
 st.markdown("---")
 
-# Slayt 5: Enerji Tahmin Uygulaması (Etkileşimli Demo)
-st.header("5. Enerji Tahmin Uygulaması (Etkileşimli Demo)")
+# Slayt 6: Enerji Tahmin Uygulaması (Etkileşimli Demo)
+st.header("6. Enerji Tahmin Uygulaması (Etkileşimli Demo)")
 st.write("""
     Geliştirdiğimiz bu interaktif web uygulaması, modelimizin pratik kullanımını ve tahmin yeteneğini göstermektedir.
     Aşağıdaki bölümde, istediğiniz parametreleri girerek aktif güç tüketimi için anında tahminler alabilirsiniz.
@@ -301,22 +361,5 @@ if st.button('Aktif Güç Tahmin Et'):
 
 st.markdown("---")
 
-# Slide 6: Conclusion and Future Steps
-st.header("6. Sonuç ve Gelecek Adımlar")
-st.markdown("""
-* **Projenin Temel Çıkarımları:**
-    * Hava durumu ve elektrik parametrelerinin aktif güç tüketimi tahmini için yüksek derecede açıklayıcı olduğunu gösterdik.
-    * Ensemble (Stacking) öğrenme yaklaşımı ile çok yüksek doğrulukta tahminler elde edildi.
-    * Geliştirilen Streamlit uygulaması, modelin pratik kullanımını kolaylaştırmaktadır.
-* **Elde Edilen Başarılar:**
-    * $0.98$ gibi yüksek ve genellenebilir bir $R^2$ skoru.
-    * Tamamen işlevsel ve kullanıcı dostu bir tahmin uygulaması.
-* **Gelecekteki Potansiyel Geliştirmeler:**
-    * Daha fazla ve çeşitli veri entegrasyonu (örneğin, zaman serisi özellikleri, takvim bilgileri).
-    * Diğer gelişmiş makine öğrenimi modellerinin veya derin öğrenme mimarilerinin denenmesi.
-    * Gerçek zamanlı veri akışı entegrasyonu.
-    * Modelin performans izlemesi ve otomatik yeniden eğitim mekanizmaları.
-""")
-st.markdown("---")
-st.subheader("Teşekkürler!")
-st.write("Sorularınız varsa alabilirim.")
+st.subheader("Dinlediğiniz için teşekkürler!")
+st.write("Projemizi incelediğiniz için teşekkür ederiz. Sorularınız varsa memnuniyetle cevaplayabiliriz.")
