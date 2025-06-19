@@ -344,14 +344,11 @@ if st.button('Aktif Güç Tahmin Et'):
     final_input = input_encoded.reindex(columns=original_X_columns, fill_value=0)
 
     # Debug output: Show the final DataFrame prepared for prediction
-    st.write("Final Input DataFrame (with Feature Names - Before Scaling):")
-    st.dataframe(final_input)
 
     # Scale only the numerical features
     final_input[numerical_features] = scaler.transform(final_input[numerical_features])
 
     # Debug output: Show the scaled DataFrame before entering the model
-    st.dataframe(final_input)
 
     # Make prediction (using the loaded Stacking Regressor model)
     prediction = lr_model.predict(final_input)[0]
