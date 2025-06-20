@@ -232,7 +232,7 @@ except FileNotFoundError:
 
 st.subheader('Hava Durumu ve Güç İlişkisi')
 try:
-    st.image('hava_sıcaklık.jpeg', caption='Veri Setindeki Hava Durumu ve Güç İlişkisi (Kutu Grafiği)', width=1400)
+    st.image('hava_guc.jpeg', caption='Veri Setindeki Hava Durumu ve Güç İlişkisi (Kutu Grafiği)', width=1400)
 except FileNotFoundError:
     st.warning("Görsel 'hava_sıcaklık.jpeg' bulunamadı. Lütfen model eğitim dosyasını çalıştırdığınızdan emin olun.")
 st.markdown("---")
