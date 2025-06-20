@@ -279,41 +279,96 @@ st.markdown("""
 st.info("**Projemizin nihai modeli, bireysel uzmanların bilgeliğini birleştiren bu gelişmiş Stacking mimarisidir.**")
 st.markdown("---")
 
-# Slayt 4: Model Performansı ve Sonuçların Doğrulanması
-st.header("4. Sonuçların Analizi: Modelimiz Sadece Tahmin mi Ediyor, Yoksa Anlıyor mu?")
-st.markdown("Bir model geliştirmek denklemin bir yarısıdır. Diğer yarısı ise bu modelin ne kadar güvenilir olduğunu kanıtlamaktır. Modelimizin sadece geçmişi ezberlemediğinden, geleceği öngörebilecek şekilde gerçekten 'öğrendiğinden' emin olmalıydık.")
-st.subheader("4.1. Başarı Metrikleri: R²'nin Ötesinde")
+# 4. slayt
+st.header("4. Sonuçların Analizi: Modelimiz Tahmin Etmekle mi Yetiniyor, Yoksa Gerçekten Anlıyor mu?")
 st.markdown("""
-- **R² Skoru (Belirlilik Katsayısı):** Nihai modelimiz, test verisi üzerinde **R² = 0.98** gibi olağanüstü bir skora ulaştı. Bunun anlamı şudur: Enerji tüketimindeki dalgalanmaların **%98'inin nedenini** modelimizdeki faktörlerle açıklayabiliyoruz. Geriye kalan %2'lik kısım, verimizde bulunmayan öngörülemez insan davranışları veya ani olaylar gibi faktörlere aittir.
-- **Model Karşılaştırması:** Stacking yaklaşımının gücünü göstermek için, tekil modellerin performansıyla karşılaştırdık. Sonuçlar, "uzmanlar komitesinin" tek bir uzmandan her zaman daha bilge olduğunu kanıtladı.
+Bir makine öğrenmesi modeli geliştirmek sadece verileri işleyip doğru tahminler almakla sınırlı değildir. Asıl hedef, modelin bu tahminleri nasıl yaptığına dair bir anlayış geliştirmek ve modelin sadece geçmişi ezberleyip ezberlemediğini değil, geleceği de güvenilir şekilde öngörebilecek kadar "anlayıp anlamadığını" test etmektir. Enerji tüketimi gibi çok sayıda faktörün etkilediği bir konuda, modelimizin gerçekten genellenebilir ve sağlam bir yapıya sahip olması kritik öneme sahip. Bu bölümde, modelimizin bu yetkinliğe ulaşıp ulaşmadığını hangi metriklerle ve yöntemlerle incelediğimizi anlatıyoruz.
 """)
 
-st.subheader("4.2. Güvenilirlik Testi: Aşırı Uyum (Overfitting) ve Çapraz Doğrulama")
+st.subheader("4.1. Başarı Metrikleri: Modelin Gerçekten Öğrenip Öğrenmediğini Anlamak")
+
 st.markdown("""
-İyi bir model sadece bildiği soruları değil, daha önce hiç görmediği soruları da cevaplayabilmelidir.
-- **Eğitim vs. Test Skorları:** Modelimizin eğitim verisindeki performansı ile daha önce hiç görmediği test verisindeki performansının neredeyse aynı olması (R² ≈ 0.98), modelimizin ezber yapmadığının en güçlü kanıtıdır.
-- **K-Katlı Çapraz Doğrulama:** En titiz testimiz buydu. Veri setini 5 parçaya ayırdık ve modelimizi 5 kez, her seferinde farklı bir parçayı test verisi olarak kullanarak eğittik. Sonuçların (örn: R² ortalaması ≈ 0.981, standart sapma ≈ 0.002) son derece tutarlı olması, model performansının şansa bağlı olmadığını ve sağlam temellere dayandığını bize gösterdi. Modelimiz bir **tarihçi değil, güvenilir bir kahindir.**
+* **R² Skoru – Model Ne Kadar Açıklayabiliyor?:**  
+    Nihai stacking modelimiz, test verisi üzerinde **R² = 0.98** skoruna ulaştı. Bu, enerji tüketimindeki değişimlerin %98’inin modelde yer alan faktörler (hava durumu, zaman, ekonomi vb.) tarafından açıklanabildiğini gösteriyor. Kalan %2 ise çoğunlukla öngörülemeyen olaylar veya dışsal etkenlerden kaynaklanıyor. Bu kadar yüksek bir skor, modelimizin enerji tüketimini belirleyen temel etkenleri oldukça doğru yakaladığını gösteriyor.
 """)
+
+st.markdown("""
+* **Model Karşılaştırması – Birlikten Kuvvet Doğar:**  
+    Modelimizi oluşturan tekil modellerle (örneğin Random Forest, XGBoost, LightGBM) stacking modelini karşılaştırdık. Beklendiği gibi, stacking yaklaşımı her bir modelin güçlü yönlerinden faydalanarak daha yüksek doğruluk sağladı. Tekil modeller belli veri yapılarında iyi performans gösterse de, stacking modeli genel başarıyı artırarak daha dengeli ve güvenilir sonuçlar verdi.
+""")
+
+st.subheader("4.2. Güvenilirlik Testleri: Aşırı Uyum ve Çapraz Doğrulama")
+st.markdown("""
+Modelin sadece geçmiş verilerde değil, daha önce hiç görmediği verilerde de iyi performans göstermesi gerekiyor. Bu yüzden modelimizin genelleyici olup olmadığını test etmek için farklı güvenilirlik analizleri yaptık.
+""")
+
+st.markdown("""
+* **Eğitim vs. Test Performansı – Ezberleyen mi, Öğrenen mi?:**  
+    Eğitim ve test setlerinde elde edilen R² skorlarının birbirine çok yakın (her ikisi de yaklaşık **0.98**) olması, modelin ezber yapmadığını ve genelleme yeteneğinin yüksek olduğunu gösteriyor. Bu, modelin yalnızca veriye değil, verinin taşıdığı anlam ve örüntülere hakim olduğunu kanıtlıyor.
+""")
+
+st.markdown("""
+* **K-Katlı Çapraz Doğrulama – Gerçek Dayanıklılık Testi:**  
+    Modeli farklı veri bölümleriyle test etmek için 5 katlı çapraz doğrulama uyguladık. Her bir katmanda eğitim ve test işlemi tekrarlanarak modelin tutarlılığı ölçüldü. Sonuçlar oldukça etkileyiciydi: Ortalama R² ≈ 0.981, standart sapma ise ≈ 0.002. Bu kadar düşük bir sapma, modelin her veri grubunda benzer performans gösterdiğini, yani sağlam ve güvenilir olduğunu gösteriyor. Başka bir deyişle, modelimiz sadece geçmişi anlatan bir araç değil; geleceği tahmin edebilen güçlü bir sistem.
+""")
+
+st.markdown("""
+Bu bölümdeki kapsamlı analizler ve güvenilirlik testleri, modelimizin sadece yüksek performanslı tahminler yapmakla kalmayıp, aynı zamanda enerji tüketimi dinamiklerini derinlemesine anladığını ve bu sayede gerçek dünya problemlerine uygulanabilir sağlam içgörüler sunduğunu kanıtlamıştır.
+""")
+
 st.markdown("---")
+
 
 st.header("5. Projenin Etkisi ve Uygulama Alanları")
 st.markdown("""
-Yüksek doğruluklu bir model geliştirmek, teknik bir başarıdır. Ancak projenin asıl değeri, bu teknik başarının gerçek dünyada yarattığı **somut faydalarda** yatar. Bu model, farklı paydaşlar için stratejik bir karar destek aracı olarak hizmet edebilir:
+Yüksek doğruluklu bir enerji tüketimi tahmin modeli geliştirmek, kesinlikle önemli bir teknik başarıdır. Ancak bu projenin gerçek değerini oluşturan, bu başarının enerji sektöründeki farklı alanlarda yarattığı **somut faydalar** ve açtığı yeni uygulama fırsatlarıdır. Geliştirdiğimiz bu model, pek çok farklı paydaş için stratejik bir karar destek aracı olarak kullanılabilir. İşte bu potansiyelin detayları:
 """)
+
+st.subheader("5.1. Akıllı Şebeke Yönetimi – Şebekeyi Daha Akıllı ve Dayanıklı Hale Getirmek")
 st.markdown("""
-- **Akıllı Şebeke Yönetimi:**
-  - **Yük Dengeleme:** Tahminler, operatörlerin enerji yükünü şebeke genelinde proaktif olarak dengelemesine olanak tanır. Bu, ekipman ömrünü uzatır ve teknik arızaları azaltır.
-  - **Kesinti Önleme:** Beklenen aşırı yüklenmeler önceden tespit edilerek, planlı bakım ve kapasite artırımı gibi önlemler alınabilir, böylece beklenmedik kesintilerin önüne geçilir.
+Enerji şebekelerinin karmaşıklığı göz önüne alındığında, doğru ve zamanında yapılan tüketim tahminleri, şebeke operatörleri için hayati önem taşır.
+* **Yük Dengeleme ve Optimizasyon:**
+    * Modelimiz, enerji yükünü proaktif bir şekilde dengeleme konusunda operatörlere yardımcı olur. Elektrik yükünün hangi bölgelerde ne zaman artıp azalacağına dair tahminler sayesinde, santrallerin ve trafoların çıktıları buna göre optimize edilebilir. Bu, aşırı yüklenmelerin ve yetersiz beslemelerin önüne geçilmesini sağlar.
+    * Bu tür optimizasyon, aynı zamanda şebeke ekipmanlarının ömrünü uzatır ve teknik arızaların sayısını önemli ölçüde azaltır. Bu da işletme ve bakım maliyetlerinde belirgin bir düşüş sağlar.
+* **Kesinti Önleme ve Güvenilirlik Artışı:**
+    * Model, beklenen aşırı yüklenmeleri veya talep artışlarını önceden tespit edebilir. Bu erken uyarı sistemi, enerji şirketlerinin planlı bakım, kapasite artırımı veya alternatif enerji kaynakları devreye alma süreçlerini daha etkin bir şekilde yönetmelerini sağlar.
+    * Proaktif müdahaleler sayesinde, beklenmedik ve geniş çaplı elektrik kesintilerinin önüne geçilerek, şebeke güvenilirliği ve enerji arz güvenliği artırılır.
+""")
 
-- **Enerji Ticareti ve Piyasalar:**
-  - **Kârlı Alım-Satım:** Enerji talebinin ne zaman artıp azalacağını öngörmek, enerji şirketlerinin spot piyasalarda daha kârlı alım-satım işlemleri yapmasını sağlar. Düşük talep zamanlarında ucuza alıp, yüksek talep zamanlarında pahalıya satabilirler.
-  - **Risk Yönetimi:** Fiyat dalgalanmalarına karşı daha hazırlıklı olmayı ve finansal riskleri minimize etmeyi sağlar.
+st.subheader("5.2. Enerji Ticareti ve Piyasalar – Kârı Artırmak ve Riski Azaltmak")
+st.markdown("""
+Enerji piyasaları, dinamik fiyat dalgalanmaları ve anlık arz-talep dengesizlikleri ile şekillenir. Doğru tahminler, bu piyasada rekabet avantajı elde etmeye yardımcı olur.
+* **Kârlı Alım-Satım Stratejileri:**
+    * Enerji talebinin hangi saatlerde, günlerde veya mevsimsel olarak artıp azalacağına dair doğru tahminler, enerji şirketlerinin spot piyasalarda daha kârlı alım-satım işlemleri yapabilmelerini sağlar. Örneğin, talep düşükken (fiyatlar uygun olduğunda) enerji satın alıp depolayabilirler ve talep yüksekken (fiyatlar arttığında) bu enerjiyi satabilirler.
+    * Bu strateji, şirketlerin gelirlerini artırırken maliyetlerini de düşürmelerine olanak tanır.
+* **Finansal Risk Yönetimi:**
+    * Enerji fiyatları, arz ve talep dengesine göre hızla değişebilir. Modelimiz, bu dalgalanmaları öngörerek enerji şirketlerinin fiyat değişimlerine karşı daha hazırlıklı olmalarını sağlar.
+    * Bu da belirsizliği azaltarak finansal riskleri minimize eder ve daha sağlam bütçe planlamalarına olanak tanır, yatırımcı güvenini artırır.
+""")
 
-- **Yenilenebilir Enerji Entegrasyonu:**
-  - **Volatilitenin Yönetimi:** Model, güneş veya rüzgar üretiminin düşeceği zamanlarda konvansiyonel santrallerin ne kadar devreye girmesi gerektiğini tahmin ederek, yenilenebilir kaynakların şebekeye sorunsuz entegrasyonunu kolaylaştırır.
+st.subheader("5.3. Yenilenebilir Enerji Entegrasyonu – Yeşil Enerjinin Şebekeye Sorunsuz Katılımı")
+st.markdown("""
+Yenilenebilir enerji kaynakları (güneş, rüzgar) çevresel faydaları yüksek olsa da, değişken ve öngörülemez doğaları nedeniyle şebekeye entegrasyonları zordur.
+* **Volatilitenin Akıllı Yönetimi:**
+    * Modelimiz, geleneksel enerji kaynaklarından bağımsız olarak enerji talebini doğru şekilde tahmin edebildiğinden, güneş veya rüzgar enerjisi üretiminin azaldığı zamanlarda (örneğin, bulutlu günler veya rüzgarsız havalar) konvansiyonel santrallerin üretmesi gereken ek enerji miktarını belirleyebilir.
+    * Bu senkronizasyon, yenilenebilir enerji kaynaklarının şebekeye sorunsuz bir şekilde entegrasyonunu sağlar, fazla üretimi engellerken talep karşılamada eksiklik yaşanmasını önler.
+* **Hibrit Sistem Optimizasyonu:**
+    * Model, yenilenebilir kaynakların değişkenliğini göz önünde bulundurarak, hibrit enerji sistemlerinde (örneğin güneş panelleri ve batarya depolama sistemleri) batarya şarj/deşarj stratejilerini optimize edebilir. Bu, yenilenebilir enerjiden elde edilen faydayı maksimum düzeye çıkarır.
+""")
 
-- **Tesis ve Tüketici Yönetimi:**
-  - **Verimlilik Artışı:** Büyük endüstriyel tesisler veya ticari binalar, kendi tüketimlerini tahmin ederek enerji maliyetlerini optimize edebilir ve üretim planlarını en verimli şekilde yapabilirler.
+st.subheader("5.4. Tesis ve Tüketici Yönetimi – Verimlilik ve Maliyet Tasarrufu")
+st.markdown("""
+Yalnızca büyük enerji şirketleri değil, bireysel tüketiciler ve endüstriyel tesisler de bu modelin sunduğu avantajlardan faydalanabilir.
+* **Büyük Tesisler İçin Verimlilik Artışı:**
+    * Endüstriyel tesisler, ticari binalar ve kampüsler, modelin tahminlerinden yararlanarak enerji tüketimlerini optimize edebilirler. Enerji yoğun süreçlerini, elektrik fiyatlarının daha düşük olduğu saatlerde gerçekleştirerek maliyetlerini önemli ölçüde düşürebilirler.
+    * Bu strateji, üretim süreçlerini enerji maliyetlerine göre şekillendirme yeteneği sunarak operasyonel verimlilik ve rekabet gücünü artırır.
+* **Tüketici Bilinçlendirmesi ve Talep Yanıtı:**
+    * Modelin sağladığı tahminler, akıllı ev sistemleri veya tüketici arayüzleri aracılığıyla bireysel tüketicilere sunulabilir. Bu sayede, tüketiciler daha bilinçli bir şekilde enerji tüketimlerini yönetebilirler. Örneğin, elektrik fiyatlarının artacağı saatler önceden bildirildiğinde, enerji yoğun cihazlar (örneğin, çamaşır makineleri) daha uygun saatlerde çalıştırılabilir.
+    * Bu, toplam enerji talebinin yönetilmesine yardımcı olur ve şebeke üzerindeki yükün azaltılmasına katkı sağlar.
+""")
+
+st.markdown("""
+Sonuç olarak, geliştirdiğimiz bu enerji tüketimi tahmin modeli sadece gelişmiş bir yapay zeka algoritması değil, aynı zamanda enerji sektöründeki karar vericiler için güçlü bir araçtır. Yüksek doğruluğu ve sağladığı içgörüler sayesinde, daha sürdürülebilir, verimli ve güvenilir bir enerji geleceğine ulaşmak için önemli bir adım atılmasını sağlar.
 """)
 st.markdown("---")
 
