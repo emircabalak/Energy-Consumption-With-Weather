@@ -173,12 +173,13 @@ st.markdown("---") # Ayırıcı
 # Slayt 1: Giriş ve Problem Tanımı
 st.header("1. Giriş ve Problem Tanımı")
 st.write("""
-    Enerji sektöründe verimlilik ve maliyet yönetimi, günümüzde büyük önem taşımaktadır. 
-    Kaynakların doğru planlanması ve şebeke istikrarının sağlanması, aynı zamanda sürdürülebilirlik hedeflerine ulaşma açısından kritik rol oynamaktadır.
+    Günümüz dünyasında, enerji kaynaklarının verimli kullanımı ve sürdürülebilir enerji yönetimi, çevresel, ekonomik ve sosyal açıdan büyük bir öneme sahiptir. Enerji tüketiminin doğru bir şekilde tahmin edilmesi, enerji üretim planlamasından akıllı şebeke yönetimine, maliyet optimizasyonundan karbon emisyonlarının azaltılmasına kadar birçok alanda kritik faydalar sunar. Geleneksel yöntemler genellikle statik ve sınırlı kalırken, makine öğrenimi modelleri dinamik ve karmaşık ilişkileri öğrenerek daha doğru tahminler yapma potansiyeli sunar.
+    
+    Bu projemizde, enerji tüketiminin temel sürücülerini anlamak ve gelecekteki aktif güç (kW cinsinden) tüketimini yüksek doğrulukla tahmin etmek amacıyla bir makine öğrenimi modeli geliştirilmesi hedeflenmiştir. Elde edilen modelin, kullanıcı dostu bir web uygulaması (Streamlit) aracılığıyla erişilebilir kılınması, teorik bilginin pratik bir araca dönüştürülmesini sağlamaktadır.
 """)
 st.markdown("""
-* **Projenin Amacı:** Hava durumu ve elektrik parametrelerini kullanarak aktif güç tüketimini doğru bir şekilde tahmin eden bir makine öğrenimi modeli geliştirmek ve bunu etkileşimli bir web uygulaması (Streamlit) aracılığıyla sunmaktır.
-* **Veri Seti:** Projemizde, enerji tüketimi (aktif güç) ve çeşitli hava durumu verilerini (sıcaklık, basınç, nem, rüzgar hızı/yönü, hava durumu açıklaması) içeren bir veri seti kullanılmıştır.
+* **Projenin Amacı:** Çeşitli hava durumu verileri (sıcaklık, basınç, nem, rüzgar hızı ve yönü) ve elektrik şebekesi parametrelerini (akım, voltaj) kullanarak aktif güç tüketimini doğru bir şekilde tahmin eden robust bir makine öğrenimi modeli geliştirmek ve bu modeli interaktif bir Streamlit uygulaması aracılığıyla son kullanıcılara sunmaktır.
+* **Veri Seti:** Projemizin temelini, enerji tüketimi (aktif güç) verileri ile zenginleştirilmiş, eş zamanlı hava durumu verilerini içeren kapsamlı bir veri seti oluşturmaktadır. Bu veri seti, modelin karmaşık çevresel ve elektriksel etkenler arasındaki ilişkileri öğrenmesi için zemin hazırlamıştır.
 """)
 
 # Santral görselini ekleme: Eğer santral.jpg bulunamazsa placeholder kullan
@@ -191,12 +192,30 @@ st.markdown("---")
 
 # Slayt 2: Veri Analizi ve Ön İşleme
 st.header("2. Veri Analizi ve Ön İşleme")
-st.markdown("""
-* **Veri Seti Keşfi:** Veri setinin sütun yapıları, veri tipleri detaylıca incelenmiş ve eksik değer olmadığı tespit edilmiştir. `date` sütunu model için gereksiz olduğu için çıkarılmıştır.
-* **Aykırı Değer Analizi:** Sayısal sütunlarda IQR (Çeyrekler Arası Aralık) metodu kullanılarak potansiyel aykırı değer sınırları belirlenmiştir.
-* **Ön İşleme Adımları:**
-    * **Kategorik Veri Dönüşümü:** `description` (hava durumu açıklaması) sütunu, modelin anlayabileceği sayısal formata dönüştürülmek üzere One-Hot Encoding yöntemiyle işlenmiştir.
-    * **Özellik Ölçeklendirme:** Model performansını artırmak ve algoritmaların doğru çalışmasını sağlamak için **yalnızca sayısal özellikler** (`current`, `voltage`, `temp`, `pressure`, `humidity`, `speed`, `deg`) `StandardScaler` ile ölçeklendirilmiştir. One-Hot Encoded sütunlar ölçeklenmemiştir.
+st.write("""
+    Veri bilimi projelerinin temelini oluşturan veri analizi ve ön işleme aşaması, ham verinin kullanılabilir ve model için optimize edilmiş bir formata dönüştürülmesini içerir. Bu aşama, modelin performansını doğrudan etkileyen kritik bir adımdır.
+""")
+st.subheader('2.1. Veri Seti Keşfi ve Temizliği')
+st.write("""
+* **Veri Yükleme ve Genel Bakış:** Projenin başlangıcında, `energy_weather_raw_data.csv` adlı ham veri seti `pandas` kütüphanesi kullanılarak yüklenmiştir. Veri setinin sütun yapıları (`df.columns`), ilk beş satırı (`df.head()`), istatistiksel özetleri (`df.describe()`) ve veri tipleri (`df.info()`) detaylıca incelenmiştir.
+* **Eksik Değer Analizi:** Veri setinde herhangi bir eksik (NaN) değer olup olmadığı kontrol edilmiş ve tüm sütunların tam olduğu, dolayısıyla eksik değer doldurma (imputation) ihtiyacının olmadığı tespit edilmiştir. Bu durum, veri setinin kalitesi açısından olumlu bir göstergedir.
+* **Gereksiz Sütunların Atılması:** `date` sütunu, doğrudan tahminlemeye katkıda bulunmadığı ve daha karmaşık zaman serisi analizleri gerektireceği için modelden çıkarılmıştır. Bu, modelin odağını belirlenen fiziksel ve çevresel özelliklere kaydırmıştır.
+""")
+st.subheader('2.2. Aykırı Değer Analizi')
+st.write("""
+* **IQR Metodu Uygulaması:** Sayısal sütunlardaki aykırı değerlerin (outliers) tespiti için Çeyrekler Arası Aralık (IQR - Interquartile Range) metodu kullanılmıştır. Bu metot, verinin dağılımına dayanarak alt ve üst sınırları belirler (Q1 - 1.5*IQR ve Q3 + 1.5*IQR). Bu sınırların dışında kalan değerler potansiyel aykırı değer olarak kabul edilir.
+* **Tespit ve Yönetim:** Analiz sonucunda, belirli sütunlarda (örn: `active_power`, `current`, `temp`) aykırı değerler tespit edilmiştir. Ancak bu değerlerin sistemsel hatalardan ziyade, anlık yüksek yüklenmeler veya anormal hava koşulları gibi gerçek senaryoları yansıtabileceği değerlendirilerek modelin genellenebilirliğini artırmak amacıyla direkt olarak çıkarılmamıştır. Bu yaklaşım, modelin daha robust olmasını hedefler.
+""")
+st.subheader('2.3. Özellik Mühendisliği ve Dönüşümü')
+st.write("""
+* **Kategorik Veri Dönüşümü (One-Hot Encoding):** `description` (hava durumu açıklaması) gibi kategorik sütunlar, makine öğrenimi modellerinin anlayabileceği sayısal formata dönüştürülmüştür. Bu dönüşüm için `pd.get_dummies` kullanılarak One-Hot Encoding yöntemi tercih edilmiştir. Her benzersiz kategori için ayrı bir ikili (0/1) sütun oluşturulmuştur (örn: `description_clear_sky`, `description_broken_clouds`). Bu sayede model, farklı hava durumu açıklamalarının aktif güç üzerindeki etkisini ayrı ayrı öğrenebilir.
+* **Özellik Ölçeklendirme (StandardScaler):** Model performansını optimize etmek ve gradient tabanlı algoritmaların daha hızlı ve doğru bir şekilde yakınsamasını sağlamak amacıyla **yalnızca sayısal özellikler** (`current`, `voltage`, `temp`, `pressure`, `humidity`, `speed`, `deg`) `StandardScaler` ile ölçeklendirilmiştir. Bu işlem, her bir sayısal özelliği ortalaması 0 ve standart sapması 1 olacak şekilde dönüştürür. One-Hot Encoded sütunlar ikili yapılarından dolayı ölçeklendirme işlemine dahil edilmemiştir.
+* **Öznitelik Bağıntı Analizi (VIF):** `statsmodels` kütüphanesi kullanılarak Varyans Büyütme Faktörü (VIF - Variance Inflation Factor) analizi yapılmıştır. Bu analiz, bağımsız değişkenler arasındaki çoklu doğrusal bağıntıyı (multicollinearity) tespit etmek için kullanılır. Yüksek VIF değerine sahip (`active_power`, `current`, `apparent_power`, `reactive_power`, `temp`, `feels_like`, `temp_t+1`, `feels_like_t+1`) bazı sütunlar tespit edilmiştir. `active_power` hedef değişkenimiz olduğu için `drop` edilmemiştir. `apparent_power` ve `reactive_power` ise `active_power` ile güçlü matematiksel ilişkisi olduğundan (güç formülü) modelin karmaşıklığını ve olası aşırı uyumu azaltmak için çıkarılmıştır. `temp_t+1` ve `feels_like_t+1` gibi geleceğe yönelik sıcaklık tahminleri de `temp` ve `feels_like` ile yüksek korelasyona sahip oldukları ve modelin mevcut zaman anındaki tahmini odaklandığı için çıkarılmıştır.
+
+""")
+st.subheader('2.4. Veri Görselleştirme ile İlişkileri Keşfetme')
+st.write("""
+    Veri setindeki temel ilişkileri anlamak ve modelin öğreneceği potansiyel kalıpları görsel olarak keşfetmek için çeşitli grafikler kullanılmıştır.
 """)
 
 st.markdown("##### Sıcaklık ve Nem Dağılımı")
